@@ -4,12 +4,13 @@
   <meta charset="utf-8"/>
   <script src="jquery-3.1.1.min.js"></script>
   <!-- <script type="text/javascript" src="cookies.js"></script> -->
+  <script type="text/javascript" src="parser.js"></script>
   <script type="text/javascript" src="vm.js"></script>
   <!-- <script type="text/javascript" src="data.js"></script> -->
   <style>
     table { border-collapse: collapse; }
-    .memory td, .cpu td { border: solid black 1px; height: 20px; width: 20px; font-family: monospace; text-align: center; }
-    .memory th, .cpu th { border: solid black 1px; height: 20px; width: 20px; font-family: monospace; text-align: center; }
+    .memory td, .cpu td { border: solid black 1px; height: 20px; width: 20px; font-family: monospace; text-align: center; padding: 0; }
+    .memory th, .cpu th { border: solid black 1px; height: 20px; width: 20px; font-family: monospace; text-align: center; padding: 0; }
     .disk { border: solid black 1px; padding: 1px; }
     .disk button { display: block; }
     .library { border: solid black 1px; }
@@ -26,7 +27,11 @@
     .list .disk7 { position: absolute; left: 286px; top: 425px; transform: rotate(1deg); }
     .list .disk8 { position: absolute; left: 100px; top: 474px; transform: rotate(0.5deg); }
     .list .disk9 { position: absolute; left: 307px; top: 475px; transform: rotate(-3deg); }
-    .row > * { display: inline-block; vertical-align: top;
+    .row > * { display: inline-block; vertical-align: top; }
+
+    .memory-changed { background-color: #ccf; }
+    .memory-written { background-color: #fcc; }
+    .memory-read { background-color: #cfc; }
   </style>
 </head>
 <body>
