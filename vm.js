@@ -1,5 +1,49 @@
 $(function() {
+    /******************************************/
+    /** Generic Utility Functions *************/
+    /******************************************/
+    function range(i, j) {
+	var a = [];
+	for (; i < j; i++) {
+	    a.push(i);
+	}
+	return a;
+    }
+    function tack(e, a) {
+	a.unshift(e);
+	return a;
+    }
+    /** Force a function to be unary
+      * i.e. pass none but the first argument
+      */
+    function unary(f) {
+	return function(a) {
+	    return f(a);
+	}
+    }
+
+    function toHex(k, ox) {
+	if (typeof ox == 'undefined') ox = false;
+	return function(n) {
+	    var h = Number(n).toString(16);
+	    while (h.length < k) {
+		h = '0' + h;
+	    }
+	    h = h.toUpperCase();
+	    if (ox) {
+		h = '0x' + h;
+	    }
+	    return h;
+	}
+    }
+    function trace(s) {
+	console.log(s);
+	return s;
+    }
+
+    /******************************************/
     /** DOM utility functions *****************/
+    /******************************************/
     var H = (function() {
 	function mkf(t) {
 	    return function() {
@@ -37,8 +81,23 @@ $(function() {
 	e.attr(a, v);
 	return e;
     }
+    function tableHeading(cols, text) {
+	return H.tr(at('colspan', cols, H.th(text)));
+    }
 
+    function mount(renderable) {
+	var el = renderable.render();
+	renderable.updated(function() {
+	    var newEl = renderable.render();
+	    el.replaceWith(newEl);
+	    el = newEl;
+	});
+	return el;
+    }
+
+    /******************************************/
     /** Parser Combinators ********************/
+    /******************************************/
     var EOF = null;
     var debug = {ultra: false};
 
@@ -276,31 +335,9 @@ $(function() {
 
     }
 
-    /** Toy Assembly Parser Implementation **/
-    var p = {};
-    var forward = function(o, p) {
-	return function(stream) {
-	    return o[p](stream);
-	};
-    };
-
-    var ws		    = ignore(r('[ \r\n\t]*'));
-
-    /** Toy Assembly Language Parser Utilities **/
-    var register = r('(C|(PC)|(SP)|(ST))');
-    var decimalNumber = augment(numberEvaluator(10), r('[0-9]+'));
-    var hexNumber = augment(numberEvaluator(16), r('0x[0-9a-fA-F]+'));
-    var number = or(hexNumber, decimalNumber);
-
-    function mustBeArray(data) {
-	if (typeof data !== "object") {
-	    throw new Error('value of type ' + (typeof data) + ' may not be evaluated as a binary operation');
-	}
-	if (!('length' in data)) {
-	    throw new Error('data must be an array');
-	}
-    }
-
+    /******************************************/
+    /** Virtual CPU Instruction Set ***********/
+    /******************************************/
     var I_LOAD = 0xA0;
     var I_LOADI = 0xA1;
     var I_LOADR = 0xA2;
@@ -339,82 +376,111 @@ $(function() {
 	'push': I_PUSH,
 	'pop': I_POP,
     };
-
-
-    function numberEvaluator(radix) {
-	return function(data) {
-	    if (typeof data !== "string") {
-		throw new Error('value of type ' + (typeof data) + ' may not be evaluated as a number');
-	    }
-	    return function() {
-		return parseInt(data, radix);
+    
+    /******************************************/
+    /** Toy Assembly Parser Implementation **/
+    /******************************************/
+    var toyAssemblyParser = (function() {
+	var p = {};
+	var forward = function(o, p) {
+	    return function(stream) {
+		return o[p](stream);
 	    };
 	};
-    };
-    function instructionEvaluator(data) {
-	if (typeof data !== 'object') {
-	    return { instruction: instructionNames[data], argument: 0x7e };
-	}
 
-	mustBeArray(data);
+	var ws = ignore(r('[ \r\n\t]*'));
 
-	if (data.length < 1) {
-	    throw new Error('data must have length at least 1');
-	}
+	/** Toy Assembly Language Parser Utilities **/
+	var register = r('(C|(PC)|(SP)|(ST))');
+	var decimalNumber = augment(numberEvaluator(10), r('[0-9]+'));
+	var hexNumber = augment(numberEvaluator(16), r('0x[0-9a-fA-F]+'));
+	var number = or(hexNumber, decimalNumber);
 
-	if (data.length < 2) {
-	    return { instruction: instructionNames[data[0]], argument: 0x7e };
-	}
-	if (data.length < 3) {
-	    var arg = data[1];
-	    if (typeof arg !== 'string') {
-		arg = arg();
+	function mustBeArray(data) {
+	    if (typeof data !== "object") {
+		throw new Error('value of type ' + (typeof data) + ' may not be evaluated as a binary operation');
 	    }
-	    return { instruction: instructionNames[data[0]], argument: arg };
+	    if (!('length' in data)) {
+		throw new Error('data must be an array');
+	    }
 	}
 
-	throw new Error('data must have length at most 2');
-    }
 
-    function nullaryInstruction(name) {
-	return augment(instructionEvaluator, seq(ws, str(name), ws));
-    }
-    function unaryInstruction(name) {
-	return augment(instructionEvaluator, seq(ws, str(name), ws, or(register, number), ws));
-    }
+	function numberEvaluator(radix) {
+	    return function(data) {
+		if (typeof data !== "string") {
+		    throw new Error('value of type ' + (typeof data) + ' may not be evaluated as a number');
+		}
+		return function() {
+		    return parseInt(data, radix);
+		};
+	    };
+	};
+	function instructionEvaluator(data) {
+	    if (typeof data !== 'object') {
+		return { instruction: instructionNames[data], argument: 0x7e };
+	    }
 
-    function registerToIndex(r) {
-	switch (r) {
-	case 'C':
-	    return 0;
-	case 'PC':
-	    return 1;
-	case 'SP':
-	    return 2;
-	case 'ST':
-	    return 3;
-	default:
-	    return null;
+	    mustBeArray(data);
+
+	    if (data.length < 1) {
+		throw new Error('data must have length at least 1');
+	    }
+
+	    if (data.length < 2) {
+		return { instruction: instructionNames[data[0]], argument: 0x7e };
+	    }
+	    if (data.length < 3) {
+		var arg = data[1];
+		if (typeof arg !== 'string') {
+		    arg = arg();
+		}
+		return { instruction: instructionNames[data[0]], argument: arg };
+	    }
+
+	    throw new Error('data must have length at most 2');
 	}
-    }
 
-    function indexToRegister(r) {
-	switch (r) {
-	case 0:
-	    return 'C';
-	case 1:
-	    return 'PC';
-	case 2:
-	    return 'SP';
-	case 3:
-	    return 'ST';
-	default:
-	    return null;
+	function nullaryInstruction(name) {
+	    return augment(instructionEvaluator, seq(ws, str(name), ws));
 	}
-    }
+	function unaryInstruction(name) {
+	    return augment(instructionEvaluator, seq(ws, str(name), ws, or(register, number), ws));
+	}
 
+	function toyAssemblyParser() {
+	    var unaryInstructions = ['addi', 'add', 'loadi', 'load', 'read', 'write', 'cmp', 'jnz', 'jmpi', 'jmp'].map(unaryInstruction);
+	    var nullaryInstructions = ['halt', 'push', 'pop'].map(nullaryInstruction);
+	    var anyUnaryInstruction = or.apply(null, unaryInstructions.concat(nullaryInstructions));
+	    var comment = ignore(seq(ws, c(';'), r('[^\n]+'), c('\n')));
+
+	    return any(seq(anyUnaryInstruction, opt(comment)));
+	}
+
+	return toyAssemblyParser();
+
+    })();
+
+    /******************************************/
+    /** Assembly Compiler *********************/
+    /******************************************/
     function compile(disk, memory) {
-	var parser = toyAssemblyParser();
+	function registerToIndex(r) {
+	    switch (r) {
+	    case 'C':
+		return 0;
+	    case 'PC':
+		return 1;
+	    case 'SP':
+		return 2;
+	    case 'ST':
+		return 3;
+	    default:
+		return null;
+	    }
+	}
+
+	var parser = toyAssemblyParser;
 
 	var input = disk.contents();
 	var stream = parser(mkStream(input));
@@ -453,17 +519,9 @@ $(function() {
 	}
     }
 
-    function toyAssemblyParser() {
-	var unaryInstructions = ['addi', 'add', 'loadi', 'load', 'read', 'write', 'cmp', 'jnz', 'jmpi', 'jmp'].map(unaryInstruction);
-	var nullaryInstructions = ['halt', 'push', 'pop'].map(nullaryInstruction);
-	var anyUnaryInstruction = or.apply(null, unaryInstructions.concat(nullaryInstructions));
-	var comment = ignore(seq(ws, c(';'), r('[^\n]+'), c('\n')));
-
-	return any(seq(anyUnaryInstruction, opt(comment)));
-    }
-
-
-
+    /******************************************/
+    /** Virtual Machine Components ************/
+    /******************************************/
     function Memory(size) {
 	var memory = [];
 	var updateCallback = null;
@@ -512,41 +570,6 @@ $(function() {
 	};
     }
 
-    function unary(f) {
-	return function(a) {
-	    return f(a);
-	}
-    }
-
-    function toHex(k, ox) {
-	if (typeof ox == 'undefined') ox = false;
-	return function(n) {
-	    var h = Number(n).toString(16);
-	    while (h.length < k) {
-		h = '0' + h;
-	    }
-	    h = h.toUpperCase();
-	    if (ox) {
-		h = '0x' + h;
-	    }
-	    return h;
-	}
-    }
-
-    function tableHeading(cols, text) {
-	return H.tr(at('colspan', cols, H.th(text)));
-    }
-
-    function mount(renderable) {
-	var el = renderable.render();
-	renderable.updated(function() {
-	    var newEl = renderable.render();
-	    el.replaceWith(newEl);
-	    el = newEl;
-	});
-	return el;
-    }
-
     function Disk() {
 	var contents = "INSERT DISK TO CONTINUE";
 	var updateCallback = null;
@@ -591,60 +614,6 @@ $(function() {
 	};
     }
 
-    function DiskView(disk) {
-	var loadCallback = null;
-	function loadDisk() {
-	    if (loadCallback !== null) {
-		loadCallback();
-	    }
-	}
-	var compileCallback = null;
-	function compileDisk() {
-	    if (compileCallback !== null) {
-		compileCallback();
-	    }
-	}
-
-	function editDisk() {
-	    disk.contents($(this).val());
-	}
-
-	function render() {
-	    return cl('disk', H.table(H.tr(H.td(click(loadDisk, H.button("Load to memory"))), H.td(click(compileDisk, H.button("Compile to memory")))), H.tr(at('colspan', 2, H.td(at('rows', 25, at('cols', 80, change(editDisk, H.textarea(disk.contents())))))))));
-	}
-
-	return { render: render, updated: function(f) { disk.updated(f); }, loadClicked: function(f) { loadCallback = f; }, compileClicked: function(f) { compileCallback = f; } };
-    }
-
-    function CPUView(cpu) {
-	function render() {
-	    return cl('cpu', H.table(tableHeading(6, 'CPU Registers'), H.tr.apply(null, ['A', 'C', 'PC', 'SP', 'ST', 'H'].map(unary(H.th))), H.tr.apply(null, cpu.registers().map(toHex(2)).map(unary(H.td)))));
-	}
-	return { render: render, updated: function(f) { cpu.updated(f); } };
-    }
-
-    function range(i, j) {
-	var a = [];
-	for (; i < j; i++) {
-	    a.push(i);
-	}
-	return a;
-    }
-    function tack(e, a) {
-	a.unshift(e);
-	return a;
-    }
-    function MemoryView(memory) {
-	function render() {
-	    var rows = [tableHeading(17, 'Main Memory'), tack(H.th(''), range(0, 16).map(toHex(2)).map(unary(H.th)))];
-	    for (var i = 0; i < memory.size; i += 16) {
-		rows.push(H.tr.apply(null, tack(H.th(toHex(2)(i / 16)), memory.memory.slice(i, i + 16).map(toHex(2)).map(unary(H.td)))));
-	    }
-	    return cl('memory', H.table.apply(null, rows));
-	}
-	return { render: render, updated: function(f) { memory.updated(f); } };
-    }
-
     function FloppyLibrary() {
 	var clickHandler = null;
 	function diskClicked() {
@@ -670,10 +639,6 @@ $(function() {
 	    ));
 	}
 	return { render: render, updated: function(){}, clicked: function(f) { clickHandler = f; } };
-    }
-
-    function trace(s) {
-	console.log(s);
     }
 
     function CPU(memory) {
@@ -702,6 +667,21 @@ $(function() {
 	    return 0;
 	}
 
+	function indexToRegister(r) {
+	    switch (r) {
+	    case 0:
+		return 'C';
+	    case 1:
+		return 'PC';
+	    case 2:
+		return 'SP';
+	    case 3:
+		return 'ST';
+	    default:
+		return null;
+	    }
+	}
+	
 	function step() {
 	    if (H)
 		return false;
@@ -820,6 +800,55 @@ $(function() {
 	};
     }
 
+    /******************************************/
+    /** Virtual Machine Display Components ****/
+    /******************************************/
+    function DiskView(disk) {
+	var loadCallback = null;
+	function loadDisk() {
+	    if (loadCallback !== null) {
+		loadCallback();
+	    }
+	}
+	var compileCallback = null;
+	function compileDisk() {
+	    if (compileCallback !== null) {
+		compileCallback();
+	    }
+	}
+
+	function editDisk() {
+	    disk.contents($(this).val());
+	}
+
+	function render() {
+	    return cl('disk', H.table(H.tr(H.td(click(loadDisk, H.button("Load to memory"))), H.td(click(compileDisk, H.button("Compile to memory")))), H.tr(at('colspan', 2, H.td(at('rows', 25, at('cols', 80, change(editDisk, H.textarea(disk.contents())))))))));
+	}
+
+	return { render: render, updated: function(f) { disk.updated(f); }, loadClicked: function(f) { loadCallback = f; }, compileClicked: function(f) { compileCallback = f; } };
+    }
+
+    function CPUView(cpu) {
+	function render() {
+	    return cl('cpu', H.table(tableHeading(6, 'CPU Registers'), H.tr.apply(null, ['A', 'C', 'PC', 'SP', 'ST', 'H'].map(unary(H.th))), H.tr.apply(null, cpu.registers().map(toHex(2)).map(unary(H.td)))));
+	}
+	return { render: render, updated: function(f) { cpu.updated(f); } };
+    }
+
+    function MemoryView(memory) {
+	function render() {
+	    var rows = [tableHeading(17, 'Main Memory'), tack(H.th(''), range(0, 16).map(toHex(2)).map(unary(H.th)))];
+	    for (var i = 0; i < memory.size; i += 16) {
+		rows.push(H.tr.apply(null, tack(H.th(toHex(2)(i / 16)), memory.memory.slice(i, i + 16).map(toHex(2)).map(unary(H.td)))));
+	    }
+	    return cl('memory', H.table.apply(null, rows));
+	}
+	return { render: render, updated: function(f) { memory.updated(f); } };
+    }
+
+    /******************************************/
+    /** main **********************************/
+    /******************************************/
     var availableDisks = {
 	disk0: "load 5	  ; this is a comment!\n" +
 	    "add 255 write 255\n" +
