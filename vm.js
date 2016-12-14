@@ -44,50 +44,50 @@ $(function() {
 
     // Creates a stream object, which represents the current parsing state.
     function mkStream(input) {
-        var I = {};
-        var pos = 0;
+	var I = {};
+	var pos = 0;
 
-        I.error = null;
-        I.consumed = null;
+	I.error = null;
+	I.consumed = null;
 	I.data = null;
 
 	// Returns the next available character from the input stream,
 	// or EOF if there is none.
-        I.ch = function() {
+	I.ch = function() {
 	    if (input.length < 1) {
 		return EOF;
 	    }
-            return input[pos];
-        };
+	    return input[pos];
+	};
 
 	// Returns a copy of this stream, with error condition set to
 	// the provided value.
-        I.raise = function(error) {
-            var s = mkStream(input);
-            s.error = error;
+	I.raise = function(error) {
+	    var s = mkStream(input);
+	    s.error = error;
 	    if (debug.ultra) {
 		console.log("failed to consume anything from [" + input + "]: " + error);
 	    }
-            return s;
-        };
+	    return s;
+	};
 
 	// Returns a copy of this stream after consuming n characters
 	// and setting the data property to the provided value.
-        I.consume = function(n, data) {
+	I.consume = function(n, data) {
 	    if (typeof data === "undefined") data = null;
-            var s = mkStream(input.slice(n));
-            s.consumed = input.slice(0, n);
+	    var s = mkStream(input.slice(n));
+	    s.consumed = input.slice(0, n);
 	    s.data = data;
 	    if (debug.ultra) {
 		console.log("consumed [" + s.consumed + "] from [" + input + "], leaving [" + s.string() + "]");
 	    }
-            return s;
-        };
+	    return s;
+	};
 
 	// Returns the entire input stream as a string.
-        I.string = function() {
-            return input;
-        };
+	I.string = function() {
+	    return input;
+	};
 
 	// Returns the value of this stream, defined as the data
 	// property if it is non-null, or the text that was consumed
@@ -101,41 +101,41 @@ $(function() {
 	    return null;
 	}
 
-        return I;
+	return I;
     }
 
     // Returns a parser that accepts the single character provided.
     function c(expected) {
-        return function(stream) {
-            v = stream.ch();
-            if (v !== expected) {
-                return stream.raise('expected "' + expected + '", got "' + v + '"');
-            }
-            return stream.consume(1);
-        };
+	return function(stream) {
+	    v = stream.ch();
+	    if (v !== expected) {
+		return stream.raise('expected "' + expected + '", got "' + v + '"');
+	    }
+	    return stream.consume(1);
+	};
     }
 
     // Returns a parser that accepts the provided string.
     function str(expected) {
-        return function(stream) {
-            if (stream.string().startsWith(expected)) {
-                return stream.consume(expected.length);
-            }
-            return stream.raise('expected "' + expected + '", got "' + stream.string().slice(0, expected.length) + '"');
-        };
+	return function(stream) {
+	    if (stream.string().startsWith(expected)) {
+		return stream.consume(expected.length);
+	    }
+	    return stream.raise('expected "' + expected + '", got "' + stream.string().slice(0, expected.length) + '"');
+	};
     }
 
     // Returns a parser that accepts the given regular expression.
     function r(ex) {
-        var re = new RegExp('^' + ex);
-        return function(stream) {
-            var result = re.exec(stream.string());
-            if (result === null) {
-                return stream.raise('expected regex "' + ex + '" from "' + stream.string() + '"');
-            }
+	var re = new RegExp('^' + ex);
+	return function(stream) {
+	    var result = re.exec(stream.string());
+	    if (result === null) {
+		return stream.raise('expected regex "' + ex + '" from "' + stream.string() + '"');
+	    }
 
-            return stream.consume(result[0].length);
-        }
+	    return stream.consume(result[0].length);
+	}
     }
 
     // Returns a parser that consumes any text accepted by the
@@ -152,25 +152,25 @@ $(function() {
     // argument, in sequence. If any of the parsers fail, the sequence
     // fails.
     function seq() {
-        var parsers = arguments;
-        return function(stream) {
-            var i;
+	var parsers = arguments;
+	return function(stream) {
+	    var i;
 	    var s = stream;
 	    var data = [];
-            for (i in parsers) {
-                s = parsers[i](s);
-                if (s.error !== null) {
-                    return s;
-                }
+	    for (i in parsers) {
+		s = parsers[i](s);
+		if (s.error !== null) {
+		    return s;
+		}
 		if (s.value() !== null) {
 		    data.push(s.value());
 		}
-            }
+	    }
 	    if (data.length === 1) {
 		data = data[0];
 	    }
-            return s.consume(0, data);
-        };
+	    return s.consume(0, data);
+	};
     }
 
     // Returns a parser that applies each parser supplied as an
@@ -178,48 +178,48 @@ $(function() {
     // the sequence to succeed. If none of the provided parsers
     // succeed, the sequence fails.
     function or() {
-        var parsers = arguments;
-        return function(stream) {
-            var i;
+	var parsers = arguments;
+	return function(stream) {
+	    var i;
 	    var errors = "";
 	    var s = stream;
-            for (i in parsers) {
-                s = parsers[i](stream);
-                if (s.error === null) {
-                    return s;
-                }
+	    for (i in parsers) {
+		s = parsers[i](stream);
+		if (s.error === null) {
+		    return s;
+		}
 		errors += "\n\t" + s.error;
-            }
-            return stream.raise("or failed: " + errors);
-        };
+	    }
+	    return stream.raise("or failed: " + errors);
+	};
     }
 
     // Returns a parser that repeatedly applies the provided parser
     // until it fails. This always succeeds, even if the provided
     // parser fails on the first invocation.
     function any(parser) {
-        return function(stream) {
+	return function(stream) {
 	    var data = [];
-            do {
-                stream = parser(stream);
+	    do {
+		stream = parser(stream);
 		if (stream.value() !== null) {
 		    data.push(stream.value());
 		}
-            } while (stream.error === null);
+	    } while (stream.error === null);
 	    if (data.length === 1) {
 		data = data[0];
 	    }
-            return stream.consume(0, data);
-        };
+	    return stream.consume(0, data);
+	};
     }
 
     // Returns a parser that applies the provided parser once, but
     // suppresses any error condition if the provided parser fails.
     function opt(parser) {
-        return function(stream) {
-            stream = parser(stream);
-            return stream.consume(0, stream.value());
-        };
+	return function(stream) {
+	    stream = parser(stream);
+	    return stream.consume(0, stream.value());
+	};
     }
 
     // Returns a parser that applies the provided parser, and if it
@@ -239,13 +239,13 @@ $(function() {
 
     // Tests a parser against provided input.
     function test(pass, parser, input, remaining) {
-        var stream = parser(mkStream(input));
-        if (stream.error === null !== pass) {
-            console.log("----------");
-            console.log("input: [" + input + "]");
-            console.log("error: [" + stream.error + "]");
-            console.log("remaining: [" + stream.string() + "]");
-        } else if (stream.string().length > 0) {
+	var stream = parser(mkStream(input));
+	if (stream.error === null !== pass) {
+	    console.log("----------");
+	    console.log("input: [" + input + "]");
+	    console.log("error: [" + stream.error + "]");
+	    console.log("remaining: [" + stream.string() + "]");
+	} else if (stream.string().length > 0) {
 	    if (typeof remaining === "undefined") {
 		remaining = "";
 	    }
@@ -256,35 +256,35 @@ $(function() {
 	//	console.log(JSON.stringify(stream.value()));
 
 	if (false) {
-            var iterations = 100;
-            console.time('parse');
-            var stream = mkStream(input);
-            console.log(input.length * iterations);
-            for (var i = 0; i < iterations; i++) {
+	    var iterations = 100;
+	    console.time('parse');
+	    var stream = mkStream(input);
+	    console.log(input.length * iterations);
+	    for (var i = 0; i < iterations; i++) {
 		parser(mkStream(input));
-            }
-            console.timeEnd('parse');
-            console.time('parse2');
-            console.log(input.length * iterations);
-            for (var i = 0; i < iterations; i++) {
+	    }
+	    console.timeEnd('parse');
+	    console.time('parse2');
+	    console.log(input.length * iterations);
+	    for (var i = 0; i < iterations; i++) {
 		JSON.parse(input);
-            }
-            console.timeEnd('parse2');
+	    }
+	    console.timeEnd('parse2');
 	}
 
-        return stream;
+	return stream;
 
     }
 
     /** Toy Assembly Parser Implementation **/
     var p = {};
     var forward = function(o, p) {
-        return function(stream) {
-            return o[p](stream);
-        };
+	return function(stream) {
+	    return o[p](stream);
+	};
     };
 
-    var ws                  = ignore(r('[ \r\n\t]*'));
+    var ws		    = ignore(r('[ \r\n\t]*'));
 
     /** Toy Assembly Language Parser Utilities **/
     var register = r('(C|(PC)|(SP)|(ST))');
@@ -418,8 +418,8 @@ $(function() {
 
 	var input = disk.contents();
 	var stream = parser(mkStream(input));
-        console.log("error: [" + stream.error + "]");
-        console.log("remaining: [" + stream.string() + "]");
+	console.log("error: [" + stream.error + "]");
+	console.log("remaining: [" + stream.string() + "]");
 	var instructions = stream.value();
 	if (!('length' in instructions)) {
 	    instructions = [instructions];
@@ -821,7 +821,7 @@ $(function() {
     }
 
     var availableDisks = {
-	disk0: "load 5    ; this is a comment!\n" +
+	disk0: "load 5	  ; this is a comment!\n" +
 	    "add 255 write 255\n" +
 	    "\n" +
 	    "load 238\n" +
