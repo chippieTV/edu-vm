@@ -96,12 +96,134 @@ $(function() {
     }
 
     /******************************************/
-    /** Parser Combinators ********************/
+    /** Parsing Stuff *************************/
     /******************************************/
     var EOF = null;
     var debug = {ultra: false};
 
-    // Creates a stream object, which represents the current parsing state.
+    /**
+     * The functions implemented here are inspired by parser
+     * combinator libraries such as parsec for Haskell. The library
+     * provides a very small set of fundamental parser generators,
+     * along with a larger set of parser combinators.
+     *
+     * A parser combinator is a function that takes one or more
+     * parsers as arguments, and returns a new parser that combines or
+     * modifies the behavior of the original parsers.
+     *
+     * The parsers defined here operate on a stream object, which is
+     * similar to (if not exactly deserving of being called) a monad,
+     * in that its purpose is to entirely contain the parsing state,
+     * so that parsers that operate on it are purely functional.
+     *
+     * Hence, in order to parse something, one needs to define a
+     * parser, create a stream, and then call the parser on the
+     * stream. The parser returns a stream that may or may not differ
+     * from the stream passed it. Generally, parsers consume
+     * characters from the stream, so that the returned stream will
+     * contain fewer characters (if the applied parser was
+     * successful). Streams have an error property which may be set if
+     * a parser fails. Streams also have a value property which, for
+     * the fundamental parsers, is set to the string which the parser
+     * accepted. For example, calling value() on the stream returned
+     * by parser c('a') will always return 'a' if the parser
+     * succeeded.
+     *
+     * The three fundamental parser generators provided by this
+     * library are c, str, and r. c generates parsers that accept
+     * exactly one character. s generates parsers that accept any
+     * fixed string of characters. r generates parsers that accept any
+     * string matching a given regular expression.
+     *
+     * Examples:
+     *
+     *   c('a') is a parser that accepts the character 'a'.
+     *
+     *   str('foo') is a parser that accepts the string 'foo'.
+     *
+     *   r('[a-z]') is a parser that accepts any lower-case letter.
+     *
+     * 
+     * These parsers by themselves are clearly not enough to do
+     * serious parsing, but by combining them we can easily express
+     * complex grammars. This library provides the following
+     * combinators: ignore, seq, or, any, opt, and augment.
+     * 
+     *
+     * ignore(parser)
+     * 
+     * The ignore combinator returns a parser that is identical to the
+     * parser passed it, except that the new parser never sets the
+     * error or data properties of the returned stream.
+     * 
+     * Example: ignore(r('[ \r\n\t]*')) is a parser that consumes
+     *          whitespace, never fails, and produces no data.
+     * 
+     *
+     * seq(parser1, [parser2, ...])
+     * 
+     * seq produces a parser that applies each parser passed it in
+     * sequence. If any of them fails, the entire sequence fails.
+     * 
+     * Example: seq(c('f'), c('o'), c('o')) is a parser that accepts
+     *          the string 'foo', but does not accept 'f' or
+     *          'fo'. This is equivalent to str('foo').
+     * 
+     *
+     * or(parser1, [parser2, ...])
+     * 
+     * or produces a parser that applies each parser passed it in
+     * sequence. If one of the parsers succeeds, the new parser
+     * returns the stream returnd by that parser. If none of the
+     * passed parsers succeeds, the new parser fails.
+     * 
+     * Example: or(c('a'), c('b')) is a parser that accepts one
+     *          character, which must be either 'a' or 'b'. This is
+     *          equivalent to r('[ab]').
+     * 
+     *
+     * any(parser1, [parser2, ...])
+     * 
+     * any produces a parser that applies its argument until it
+     * fails. The new parser never fails, but produces the same data
+     * that its passed parser produces if the parser succeeds.
+     * 
+     * Example: any(str('foo')) is a parser that accepts any number of
+     *          occurrances of the string "foo". This is equivalent to
+     *          r('(foo)*').
+     * 
+     *
+     * opt(parser)
+     * 
+     * opt produces a parser that applies its argument exactly
+     * once. The new parser never fails, but produces the same data
+     * that its passed parser produces if the parser succeeds.
+     * 
+     * Example: seq(c('a'), opt(c('b')), c('c')) is a parser that
+     *          accepts either the string "abc" or the string
+     *          "ac". This is equivalent to r('ab?c').
+     * 
+     *
+     * augment(evaluator, parser)
+     * 
+     * augment takes two arguments, a unary evaluator function E and a
+     * parser P, and returns a new parser N. N applies P, and if P
+     * succeeds, the stream's data property is passed to E, and the
+     * return value of E is set as the data value of the stream
+     * returned by N. This is really just a convenience that allows
+     * arbitrary transformations of stream data as the stream is
+     * parsed.
+     * 
+     * Example:
+     *    augment(function(s) { return parseInt(s, 10); }, r('[0-9]+'))
+     *    is a parser that accepts decimal integers, and returns
+     *    stream whose value is the parsed integer value of the
+     *    accepted string.
+     *
+     */
+
+    // Creates a stream object, which represents the current parsing
+    // state.
     function mkStream(input) {
 	var I = {};
 	var pos = 0;
@@ -163,6 +285,10 @@ $(function() {
 	return I;
     }
 
+    /******************************************/
+    /** Fundamental Parsers *******************/
+    /******************************************/
+
     // Returns a parser that accepts the single character provided.
     function c(expected) {
 	return function(stream) {
@@ -196,6 +322,10 @@ $(function() {
 	    return stream.consume(result[0].length);
 	}
     }
+
+    /******************************************/
+    /** Parser Combinators ********************/
+    /******************************************/
 
     // Returns a parser that consumes any text accepted by the
     // provided parser. If the provided parser fails, or any data is
