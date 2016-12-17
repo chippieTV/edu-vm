@@ -127,64 +127,64 @@ export const EOF = null
 
 // Creates a stream object, which represents the current parsing state.
 export const mkStream = (input) => {
-	let I = {}
-	let pos = 0
+  let I = {}
+  let pos = 0
 
-	I.error = null
-	I.consumed = null
-	I.data = null
+  I.error = null
+  I.consumed = null
+  I.data = null
 
-	// Returns the next available character from the input stream,
-	// or EOF if there is none.
-	I.ch = () => {
-	  if (input.length < 1) {
-		  return EOF // can this access it here or do we need this.EOF..? TODO
-	  }
-	  return input[pos]
-	}
+  // Returns the next available character from the input stream,
+  // or EOF if there is none.
+  I.ch = () => {
+    if (input.length < 1) {
+      return EOF // can this access it here or do we need this.EOF..? TODO
+    }
+    return input[pos]
+  }
 
-	// Returns a copy of this stream, with error condition set to
-	// the provided value.
-	I.raise = (error) => {
+  // Returns a copy of this stream, with error condition set to
+  // the provided value.
+  I.raise = (error) => {
     let s = mkStream(input)
     s.error = error
     if (debug.ultra) {
-	    console.log("failed to consume anything from [" + input + "]: " + error)
+      console.log("failed to consume anything from [" + input + "]: " + error)
     }
     return s
-	}
+  }
 
-	// Returns a copy of this stream after consuming n characters
-	// and setting the data property to the provided value.
-	I.consume = (n, data) => {
+  // Returns a copy of this stream after consuming n characters
+  // and setting the data property to the provided value.
+  I.consume = (n, data) => {
     if (typeof data === "undefined") data = null
     var s = mkStream(input.slice(n))
     s.consumed = input.slice(0, n)
     s.data = data
     if (debug.ultra) {
-	    console.log("consumed [" + s.consumed + "] from [" + input + "], leaving [" + s.string() + "]")
+      console.log("consumed [" + s.consumed + "] from [" + input + "], leaving [" + s.string() + "]")
     }
     return s
-	}
+  }
 
-	// Returns the entire input stream as a string.
-	I.string = () => {
+  // Returns the entire input stream as a string.
+  I.string = () => {
     return input
-	}
+  }
 
-	// Returns the value of this stream, defined as the data
-	// property if it is non-null, or the text that was consumed
-	// in the creation of this stream.
-	I.value = () => {
-	  if (I.data !== null) {
-	    return I.data
-	  } else if (I.consumed !== null && I.consumed.length > 0) {
-		  return I.consumed
-	  }
-	  return null
-	}
+  // Returns the value of this stream, defined as the data
+  // property if it is non-null, or the text that was consumed
+  // in the creation of this stream.
+  I.value = () => {
+    if (I.data !== null) {
+      return I.data
+    } else if (I.consumed !== null && I.consumed.length > 0) {
+      return I.consumed
+    }
+    return null
+  }
 
-	return I
+  return I
 }
 
 /******************************************/
@@ -193,35 +193,35 @@ export const mkStream = (input) => {
 
 // Returns a parser that accepts the single character provided.
 export const c = (expected) => {
-	return (stream) => {
+  return (stream) => {
     v = stream.ch()
     if (v !== expected) {
-		  return stream.raise('expected "' + expected + '", got "' + v + '"')
-	  }
+      return stream.raise('expected "' + expected + '", got "' + v + '"')
+    }
     return stream.consume(1)
   }
 }
 
 // Returns a parser that accepts the provided string.
 export const str = (expected) => {
-	return (stream) => {
-	  if (stream.string().startsWith(expected)) {
-		  return stream.consume(expected.length)
-	  }
+  return (stream) => {
+    if (stream.string().startsWith(expected)) {
+      return stream.consume(expected.length)
+    }
     return stream.raise('expected "' + expected + '", got "' + stream.string().slice(0, expected.length) + '"')
   }
 }
 
 // Returns a parser that accepts the given regular expression.
 export const r = (ex) => {
-	let re = new RegExp('^' + ex)
-	return (stream) => {
-	  let result = re.exec(stream.string())
-	  if (result === null) {
-	    return stream.raise('expected regex "' + ex + '" from "' + stream.string() + '"')
-	  }
+  let re = new RegExp('^' + ex)
+  return (stream) => {
+    let result = re.exec(stream.string())
+    if (result === null) {
+      return stream.raise('expected regex "' + ex + '" from "' + stream.string() + '"')
+    }
 
-	  return stream.consume(result[0].length)
+    return stream.consume(result[0].length)
   }
 }
 
@@ -245,8 +245,8 @@ export const ignore = (parser) => {
 export const seq = () => {
   console.log(arguments);
 
-	let parsers = arguments
-	return (stream) => {
+  let parsers = arguments
+  return (stream) => {
     let s = stream
     let data = []
     for (let i in parsers) {
@@ -262,12 +262,12 @@ export const seq = () => {
           data.push(s.value())
         }
       }
-	  }
-	  if (data.length === 1) {
-		  data = data[0]
-	  }
-	  return s.consume(0, data)
-	}
+    }
+    if (data.length === 1) {
+      data = data[0]
+    }
+    return s.consume(0, data)
+  }
 }
 
 // Returns a parser that applies each parser supplied as an
@@ -275,36 +275,36 @@ export const seq = () => {
 // the sequence to succeed. If none of the provided parsers
 // succeed, the sequence fails.
 export const or = () => {
-	let parsers = arguments
-	return (stream) => {
+  let parsers = arguments
+  return (stream) => {
     let i // why? TODO
     let errors = ""
     let s = stream
     for (i in parsers) {
-		  s = parsers[i](stream)
-		  if (s.error === null) {
-		    return s
-		  }
-		  errors += "\n\t" + s.error
-	  }
+      s = parsers[i](stream)
+      if (s.error === null) {
+        return s
+      }
+      errors += "\n\t" + s.error
+    }
   return stream.raise("or failed: " + errors)
-	}
+  }
 }
 
 // Returns a parser that repeatedly applies the provided parser
 // until it fails. This always succeeds, even if the provided
 // parser fails on the first invocation.
 export const any = (parser) => {
-	return (stream) => {
+  return (stream) => {
     let data = []
     do {
-		  stream = parser(stream)
-	    if (stream.value() !== null) {
-		    data.push(stream.value())
-		  }
-	  } while (stream.error === null)
+      stream = parser(stream)
+      if (stream.value() !== null) {
+        data.push(stream.value())
+      }
+    } while (stream.error === null)
     if (data.length === 1) {
-	    data = data[0]
+      data = data[0]
     }
     return stream.consume(0, data)
   }
@@ -323,54 +323,54 @@ export const opt = (parser) => {
 // succeeds, emplaces the provided evaluator in the returned
 // stream's data property.
 export const augment = (evaluator, parser) => {
-	return (stream) => {
-	  stream = parser(stream)
+  return (stream) => {
+    stream = parser(stream)
 
-	  if (stream.error === null) {
-		  return stream.consume(0, evaluator(stream.value()))
-	  }
+    if (stream.error === null) {
+      return stream.consume(0, evaluator(stream.value()))
+    }
 
-	  return stream
-	}
+    return stream
+  }
 }
 
 // Tests a parser against provided input.
 export const test = (pass, parser, input, remaining) => {
-	let stream = parser(mkStream(input))
-	if (stream.error === null !== pass) {
+  let stream = parser(mkStream(input))
+  if (stream.error === null !== pass) {
     console.log("----------")
     console.log("input: [" + input + "]")
     console.log("error: [" + stream.error + "]")
     console.log("remaining: [" + stream.string() + "]")
-	} else if (stream.string().length > 0) {
-	  if (typeof remaining === "undefined") {
-		  remaining = ""
-	  }
-	  if (stream.string() != remaining && pass) {
-		  console.log("Warning: unconsumed input [" + stream.string() + "] from [" + input + "]" )
-	  }
-	}
-	//	console.log(JSON.stringify(stream.value()));
+  } else if (stream.string().length > 0) {
+    if (typeof remaining === "undefined") {
+      remaining = ""
+    }
+    if (stream.string() != remaining && pass) {
+      console.log("Warning: unconsumed input [" + stream.string() + "] from [" + input + "]" )
+    }
+  }
+  //  console.log(JSON.stringify(stream.value()));
 
-	if (false) {
+  if (false) {
     let i = 0
-	  let iterations = 100
+    let iterations = 100
     console.time('parse')
     let stream = mkStream(input)
     console.log(input.length * iterations)
     for (i = 0; i < iterations; i++) {
-		  parser(mkStream(input))
-	  }
+      parser(mkStream(input))
+    }
     console.timeEnd('parse')
     console.time('parse2')
     console.log(input.length * iterations)
     for (i = 0; i < iterations; i++) {
-		  JSON.parse(input)
-	  }
-	  console.timeEnd('parse2')
+      JSON.parse(input)
+    }
+    console.timeEnd('parse2')
   }
 
-	return stream
+  return stream
 }
 
 
@@ -380,16 +380,16 @@ export const test = (pass, parser, input, remaining) => {
 
 
 // export default {
-// 	EOF,
-// 	any,
-// 	augment,
-// 	c,
-// 	ignore,
-// 	mkStream,
-// 	opt,
-// 	or,
-// 	r,
-// 	seq,
-// 	str,
-// 	test
+//  EOF,
+//  any,
+//  augment,
+//  c,
+//  ignore,
+//  mkStream,
+//  opt,
+//  or,
+//  r,
+//  seq,
+//  str,
+//  test
 // }

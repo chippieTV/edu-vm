@@ -26,16 +26,16 @@ const I_PUSH      = 0xE1
 const I_HALT      = 0xF0
 
 export const instructionNames = {
-	'add':   I_ADD,
-	'addi':  I_ADDI,
-	'load':  I_LOAD,
-	'read':  I_LOADI,
-	'write': I_WRITE,
-	'cmp':   I_CMP,
-	'jmp':   I_JMP,
-	'jmpi':  I_JMPI,
-	'jnz':   I_JNZ,
-	'halt':  I_HALT,
-	'push':  I_PUSH,
-	'pop':   I_POP
+  'add':   I_ADD,
+  'addi':  I_ADDI,
+  'load':  I_LOAD,
+  'read':  I_LOADI,
+  'write': I_WRITE,
+  'cmp':   I_CMP,
+  'jmp':   I_JMP,
+  'jmpi':  I_JMPI,
+  'jnz':   I_JNZ,
+  'halt':  I_HALT,
+  'push':  I_PUSH,
+  'pop':   I_POP
 }

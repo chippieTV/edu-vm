@@ -3,47 +3,47 @@
 /******************************************/
 
 const Disk = () => {
-	let contents = "INSERT DISK TO CONTINUE";
-	let updateCallback = null;
-	const read = (address) => {
-	  if (address > contents.length) {
-		  return 0
-	  }
-	  return contents.charCodeAt(address) & 0xFF
-	}
-
-	const write = (address, value) => {
+  let contents = "INSERT DISK TO CONTINUE";
+  let updateCallback = null;
+  const read = (address) => {
     if (address > contents.length) {
-		  return 0
-	  }
-	  contents = contents.substr(0, address) + String.fromCharCode(value & 0xFF) + contents.substr(address + 1, contents.length)
+      return 0
+    }
+    return contents.charCodeAt(address) & 0xFF
+  }
+
+  const write = (address, value) => {
+    if (address > contents.length) {
+      return 0
+    }
+    contents = contents.substr(0, address) + String.fromCharCode(value & 0xFF) + contents.substr(address + 1, contents.length)
 
     if (updateCallback !== null) {
-		  updateCallback(address)
-	  }
+      updateCallback(address)
+    }
 
-	  return 1
-	}
+    return 1
+  }
 
-	function _contents(newContents) {
+  function _contents(newContents) {
     if (typeof newContents == 'undefined') {
-		  return contents
+      return contents
     }
     contents = newContents
     if (updateCallback !== null) {
-		  updateCallback(null)
+      updateCallback(null)
     }
     return contents;
-	}
-	function updated(f) {
+  }
+  function updated(f) {
     updateCallback = f
-	}
-	return {
+  }
+  return {
     read: read,
     write: write,
     contents: _contents,
     updated: updated
-	}
+  }
 }
 
 export default Disk
