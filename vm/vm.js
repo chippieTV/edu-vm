@@ -1,17 +1,3 @@
-// const EOF       = __library_parser.EOF,
-//       any       = __library_parser.any,
-//       augment   = __library_parser.augment,
-//       c         = __library_parser.c,
-//       ignore    = __library_parser.ignore,
-//       mkStream  = __library_parser.mkStream,
-//       opt       = __library_parser.opt,
-//       or        = __library_parser.or,
-//       r         = __library_parser.r,
-//       seq       = __library_parser.seq,
-//       str       = __library_parser.str,
-//       test      = __library_parser.test;
-
-
 const { EOF,
         any,
         augment,
@@ -23,7 +9,7 @@ const { EOF,
         r,
         seq,
         str,
-        test } from '__library_parser'
+        test } from 'parser'
 
 /******************************************/
 /** Generic Utility Functions *************/

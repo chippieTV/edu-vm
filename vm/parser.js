@@ -1,7 +1,6 @@
 /******************************************/
 /** Parsing Stuff *************************/
 /******************************************/
-const EOF = null
 const debug = {ultra: false}
 
 /**
@@ -124,8 +123,10 @@ const debug = {ultra: false}
  *
  */
 
+export const EOF = null
+
 // Creates a stream object, which represents the current parsing state.
-const mkStream = (input) => {
+export const mkStream = (input) => {
 	let I = {}
 	let pos = 0
 
@@ -137,7 +138,7 @@ const mkStream = (input) => {
 	// or EOF if there is none.
 	I.ch = () => {
 	  if (input.length < 1) {
-		  return EOF
+		  return EOF // can this access it here or do we need this.EOF..? TODO
 	  }
 	  return input[pos]
 	}
@@ -191,28 +192,28 @@ const mkStream = (input) => {
 /******************************************/
 
 // Returns a parser that accepts the single character provided.
-const c = (expected) => {
+export const c = (expected) => {
 	return (stream) => {
     v = stream.ch()
     if (v !== expected) {
 		  return stream.raise('expected "' + expected + '", got "' + v + '"')
 	  }
-	    return stream.consume(1)
-	  }
+    return stream.consume(1)
   }
+}
 
 // Returns a parser that accepts the provided string.
-const str = (expected) => {
+export const str = (expected) => {
 	return (stream) => {
 	  if (stream.string().startsWith(expected)) {
 		  return stream.consume(expected.length)
 	  }
-	    return stream.raise('expected "' + expected + '", got "' + stream.string().slice(0, expected.length) + '"')
-	  }
+    return stream.raise('expected "' + expected + '", got "' + stream.string().slice(0, expected.length) + '"')
   }
+}
 
 // Returns a parser that accepts the given regular expression.
-const r = (ex) => {
+export const r = (ex) => {
 	let re = new RegExp('^' + ex)
 	return (stream) => {
 	  let result = re.exec(stream.string())
@@ -232,7 +233,7 @@ const r = (ex) => {
 // provided parser. If the provided parser fails, or any data is
 // set, the error condition and data are cleared from the stream
 // returned by this parser.
-const ignore = (parser) => {
+export const ignore = (parser) => {
   return (stream) => {
     return parser(stream).consume(0)
   }
@@ -241,20 +242,26 @@ const ignore = (parser) => {
 // Returns a parser that applies each parser supplied as an
 // argument, in sequence. If any of the parsers fail, the sequence
 // fails.
-const seq = () => {
+export const seq = () => {
+  console.log(arguments);
+
 	let parsers = arguments
 	return (stream) => {
-    let i // why? TODO
     let s = stream
     let data = []
-    for (i in parsers) {
-  		s = parsers[i](s)
-  		if (s.error !== null) {
-  		    return s
-  		}
-  		if (s.value() !== null) {
-  		    data.push(s.value())
-  		}
+    for (let i in parsers) {
+
+      console.log(parsers[i]);
+      if (typeof parsers[i] === 'function') {
+
+        s = parsers[i](s)
+        if (s.error !== null) {
+          return s
+        }
+        if (s.value() !== null) {
+          data.push(s.value())
+        }
+      }
 	  }
 	  if (data.length === 1) {
 		  data = data[0]
@@ -267,7 +274,7 @@ const seq = () => {
 // argument, in sequence. The first parser that succeeds causes
 // the sequence to succeed. If none of the provided parsers
 // succeed, the sequence fails.
-const or = () => {
+export const or = () => {
 	let parsers = arguments
 	return (stream) => {
     let i // why? TODO
@@ -287,7 +294,7 @@ const or = () => {
 // Returns a parser that repeatedly applies the provided parser
 // until it fails. This always succeeds, even if the provided
 // parser fails on the first invocation.
-const any = (parser) => {
+export const any = (parser) => {
 	return (stream) => {
     let data = []
     do {
@@ -305,7 +312,7 @@ const any = (parser) => {
 
 // Returns a parser that applies the provided parser once, but
 // suppresses any error condition if the provided parser fails.
-const opt = (parser) => {
+export const opt = (parser) => {
   return (stream) => {
     stream = parser(stream)
     return stream.consume(0, stream.value())
@@ -315,7 +322,7 @@ const opt = (parser) => {
 // Returns a parser that applies the provided parser, and if it
 // succeeds, emplaces the provided evaluator in the returned
 // stream's data property.
-const augment = (evaluator, parser) => {
+export const augment = (evaluator, parser) => {
 	return (stream) => {
 	  stream = parser(stream)
 
@@ -328,7 +335,7 @@ const augment = (evaluator, parser) => {
 }
 
 // Tests a parser against provided input.
-const test = (pass, parser, input, remaining) => {
+export const test = (pass, parser, input, remaining) => {
 	let stream = parser(mkStream(input))
 	if (stream.error === null !== pass) {
     console.log("----------")
@@ -366,17 +373,23 @@ const test = (pass, parser, input, remaining) => {
 	return stream
 }
 
-export default {
-	EOF,
-	any,
-	augment,
-	c,
-	ignore,
-	mkStream,
-	opt,
-	or,
-	r,
-	seq,
-	str,
-	test
-}
+
+
+// is it better to make all functions constant and then export them?
+// export const fnName = () => {}
+
+
+// export default {
+// 	EOF,
+// 	any,
+// 	augment,
+// 	c,
+// 	ignore,
+// 	mkStream,
+// 	opt,
+// 	or,
+// 	r,
+// 	seq,
+// 	str,
+// 	test
+// }
