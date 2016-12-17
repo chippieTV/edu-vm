@@ -1,23 +1,36 @@
-$(function() {
-        var EOF = __library_parser.EOF,
-	    any = __library_parser.any,
-	    augment = __library_parser.augment,
-	    c = __library_parser.c,
-	    ignore = __library_parser.ignore,
-	    mkStream = __library_parser.mkStream,
-	    opt = __library_parser.opt,
-	    or = __library_parser.or,
-	    r = __library_parser.r,
-	    seq = __library_parser.seq,
-	    str = __library_parser.str,
-	    test = __library_parser.test;
+// const EOF       = __library_parser.EOF,
+//       any       = __library_parser.any,
+//       augment   = __library_parser.augment,
+//       c         = __library_parser.c,
+//       ignore    = __library_parser.ignore,
+//       mkStream  = __library_parser.mkStream,
+//       opt       = __library_parser.opt,
+//       or        = __library_parser.or,
+//       r         = __library_parser.r,
+//       seq       = __library_parser.seq,
+//       str       = __library_parser.str,
+//       test      = __library_parser.test;
 
-    /******************************************/
-    /** Generic Utility Functions *************/
-    /******************************************/
-    /**
-     * Generate an array containing the integers in the interval [i, j).
-     */
+
+const { EOF,
+        any,
+        augment,
+        c,
+        ignore,
+        mkStream,
+        opt,
+        or,
+        r,
+        seq,
+        str,
+        test } from '__library_parser'
+
+/******************************************/
+/** Generic Utility Functions *************/
+/******************************************/
+/**
+ * Generate an array containing the integers in the interval [i, j).
+ */
     function range(i, j) {
 	var a = [];
 	for (; i < j; i++) {
@@ -744,8 +757,20 @@ $(function() {
 
 	compile(disk, memory);
 
-	var interval = setInterval(function() { console.log('tick'); cpu.step(); }, 500);
+	var interval = setInterval(function() { /*console.log('tick');*/ cpu.step(); }, 4800);
+
+    // window.addEventListener('keyup', (e) => {
+    //     switch(e.keyCode) {
+    //         case '39': // right arrow
+    //         cpu.step()
+    //         break
+    //
+    //
+    //
+    //     }
+    //     console.log(e.keyCode == 39)
+    // })
+
     }
 
     main();
-});
