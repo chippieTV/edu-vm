@@ -82,16 +82,28 @@ const toyAssemblyParser = (function() {
 	}
 
 	function nullaryInstruction(name) {
+    console.log('about to augment ', name);
+    console.log(instructionEvaluator);
+    console.log(seq(ws, str(name), ws));
+    console.log(str(name));
+
     return augment(instructionEvaluator, seq(ws, str(name), ws))
 	}
 
 	function unaryInstruction(name) {
+    console.log('about to augment ', name);
     return augment(instructionEvaluator, seq(ws, str(name), ws, or(register, number), ws))
 	}
 
 	function toyAssemblyParser() {
+    console.log('in toyAssemblyParser');
+    console.log('about to run unaryInstructions');
     var unaryInstructions = ['addi', 'add', 'loadi', 'load', 'read', 'write', 'cmp', 'jnz', 'jmpi', 'jmp'].map(unaryInstruction)
+    console.log(unaryInstructions);
+    console.log('about to run nullaryInstructions');
     var nullaryInstructions = ['halt', 'push', 'pop'].map(nullaryInstruction)
+    console.log(nullaryInstructions);
+
     var anyUnaryInstruction = or.apply(null, unaryInstructions.concat(nullaryInstructions))
     var comment = ignore(seq(ws, c(';'), r('[^\n]+'), c('\n')))
 
